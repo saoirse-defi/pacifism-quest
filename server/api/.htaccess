@@ -1,0 +1,6 @@
+# Only the three endpoints can be requested; helper files are off limits.
+Options -Indexes
+
+<FilesMatch "^(lib|blocklist)\.php$">
+    Require all denied
+</FilesMatch>

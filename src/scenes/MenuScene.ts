@@ -4,6 +4,7 @@ import { DIFFICULTIES, PLAYER_SIZE } from '../config';
 import { Backdrop } from '../backdrop';
 import { Player } from '../entities';
 import { firstPad, onPadButtons, PAD } from '../gamepad';
+import { closePanel, openBoardPanel, panelOpen } from '../panels';
 import { saveSettings, settings } from '../settings';
 import { Steering } from '../steering';
 import { addButton, addText, formatNumber, isTouchDevice, toggleMute } from '../ui';
@@ -15,7 +16,7 @@ const BRIEFING = [
   'Beware of deadly mines at the edge of gates!',
 ].join('\n');
 
-const PAD_HINTS = 'A start    X background    D-pad / LB RB difficulty    View sound';
+const PAD_HINTS = 'A start    X background    Y leaderboard    D-pad / LB RB difficulty    View sound';
 
 export class MenuScene extends Phaser.Scene {
   private view!: View;
@@ -31,6 +32,7 @@ export class MenuScene extends Phaser.Scene {
   private nextButton!: Phaser.GameObjects.Container;
   private startButton!: Phaser.GameObjects.Container;
   private backgroundButton!: Phaser.GameObjects.Container;
+  private leaderboardButton!: Phaser.GameObjects.Container;
   private highScoreText!: Phaser.GameObjects.Text;
   private soundText!: Phaser.GameObjects.Text;
   private keysText!: Phaser.GameObjects.Text;
@@ -67,8 +69,9 @@ export class MenuScene extends Phaser.Scene {
 
     this.startButton = addButton(this, 'START', () => this.startGame()).setDepth(10);
     this.backgroundButton = addButton(this, 'BACKGROUND', () => this.changeBackground()).setDepth(10);
+    this.leaderboardButton = addButton(this, 'LEADERBOARD', () => this.showLeaderboard(), 550).setDepth(10);
     this.highScoreText = addText(this, 0, 0, `HIGH SCORE  ${formatNumber(settings.highScore)}`, { size: 22 }).setDepth(10);
-    this.keysText = addText(this, 0, 0, touch ? '' : 'S start    B background    ← → difficulty    M sound', {
+    this.keysText = addText(this, 0, 0, touch ? '' : 'S start    B background    L leaderboard    ← → difficulty    M sound', {
       size: 16,
       color: '#8a93b8',
     });
@@ -85,16 +88,23 @@ export class MenuScene extends Phaser.Scene {
       keyboard.on('keydown-LEFT', () => this.changeDifficulty(-1));
       keyboard.on('keydown-RIGHT', () => this.changeDifficulty(1));
       keyboard.on('keydown-M', () => this.toggleSound());
+      keyboard.on('keydown-L', () => this.showLeaderboard());
     }
+    // While the leaderboard panel is open, B closes it and everything else is ignored.
+    const unlessPanel = (action: () => void) => () => {
+      if (!panelOpen()) action();
+    };
     onPadButtons(this, {
-      [PAD.A]: () => this.startGame(),
-      [PAD.MENU]: () => this.startGame(),
-      [PAD.X]: () => this.changeBackground(),
-      [PAD.DPAD_LEFT]: () => this.changeDifficulty(-1),
-      [PAD.LB]: () => this.changeDifficulty(-1),
-      [PAD.DPAD_RIGHT]: () => this.changeDifficulty(1),
-      [PAD.RB]: () => this.changeDifficulty(1),
-      [PAD.VIEW]: () => this.toggleSound(),
+      [PAD.A]: unlessPanel(() => this.startGame()),
+      [PAD.MENU]: unlessPanel(() => this.startGame()),
+      [PAD.X]: unlessPanel(() => this.changeBackground()),
+      [PAD.Y]: unlessPanel(() => this.showLeaderboard()),
+      [PAD.B]: () => closePanel(),
+      [PAD.DPAD_LEFT]: unlessPanel(() => this.changeDifficulty(-1)),
+      [PAD.LB]: unlessPanel(() => this.changeDifficulty(-1)),
+      [PAD.DPAD_RIGHT]: unlessPanel(() => this.changeDifficulty(1)),
+      [PAD.RB]: unlessPanel(() => this.changeDifficulty(1)),
+      [PAD.VIEW]: unlessPanel(() => this.toggleSound()),
     });
     // Swap the key hints for controller hints once a controller shows up.
     const showPadHints = () => this.keysText.setText(PAD_HINTS);
@@ -133,7 +143,7 @@ export class MenuScene extends Phaser.Scene {
 
     this.briefing.setWordWrapWidth(w * 0.9);
     // Stack everything as one column, centred vertically (tall phone screens leave gaps otherwise).
-    const blockHeight = 490 + this.briefing.height;
+    const blockHeight = 560 + this.briefing.height;
     let y = Math.max(70, (h - blockHeight) / 2);
 
     this.title.setFontSize(Math.floor(Math.min(84, w / 14))).setPosition(cx, y);
@@ -152,6 +162,8 @@ export class MenuScene extends Phaser.Scene {
     y += 86;
     this.startButton.setPosition(cx - 145, y);
     this.backgroundButton.setPosition(cx + 145, y);
+    y += 70;
+    this.leaderboardButton.setPosition(cx, y);
     y += 80;
     this.highScoreText.setPosition(cx, y);
     y += 40;
@@ -186,6 +198,12 @@ export class MenuScene extends Phaser.Scene {
 
   private refreshSound(): void {
     this.soundText.setText(settings.muted ? 'SOUND OFF' : 'SOUND ON');
+  }
+
+  private showLeaderboard(): void {
+    if (panelOpen()) return;
+    audio.select();
+    openBoardPanel(this, settings.difficulty);
   }
 
   private startGame(): void {

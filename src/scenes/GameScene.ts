@@ -4,6 +4,8 @@ import * as C from '../config';
 import { Backdrop } from '../backdrop';
 import { Enemy, Gate, Gem, Player, Pool } from '../entities';
 import { onPadButtons, PAD } from '../gamepad';
+import { startRun } from '../leaderboard';
+import { closePanel, openSubmitPanel, panelOpen } from '../panels';
 import { saveSettings, settings } from '../settings';
 import { Steering } from '../steering';
 import { TEX_SCALE } from '../textures';
@@ -44,6 +46,12 @@ export class GameScene extends Phaser.Scene {
   private coinChain = 0;
   private lastGemAt = -Infinity;
   private lastCoinSoundAt = -Infinity;
+  // Run stats reported to the leaderboard, which recalculates the score from them.
+  private kills = 0;
+  private gatesCleared = 0;
+  private runRequest: Promise<string | null> = Promise.resolve(null);
+  private submitButton?: Phaser.GameObjects.Container;
+  private submitted = false;
 
   constructor() {
     super('game');
@@ -61,6 +69,10 @@ export class GameScene extends Phaser.Scene {
     this.lastGemAt = -Infinity;
     this.lastCoinSoundAt = -Infinity;
     this.overlay = undefined;
+    this.kills = 0;
+    this.gatesCleared = 0;
+    this.submitButton = undefined;
+    this.submitted = false;
   }
 
   private get difficulty(): C.Difficulty {
@@ -73,6 +85,8 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     audio.setMusic('game');
+    // Tell the server the run has started; it records the real start time for its checks.
+    this.runRequest = startRun(settings.difficulty);
     this.view = applyView(this);
     this.backdrop = new Backdrop(this);
     const { width, height } = this.view;
@@ -286,6 +300,8 @@ export class GameScene extends Phaser.Scene {
 
     const points = killed * C.POINTS_PER_ENEMY + C.POINTS_PER_GATE;
     this.score += points;
+    this.kills += killed;
+    this.gatesCleared++;
     this.popup(gate.x, gate.y, `+${formatNumber(points * this.multiplier * this.difficulty.level)}`);
     this.cameras.main.shake(140, 0.003 + Math.min(killed, 20) * 0.0004);
     audio.gateBlast(killed);
@@ -422,23 +438,51 @@ export class GameScene extends Phaser.Scene {
 
   private showGameOver(reason: string, total: number, record: boolean): void {
     const children: Phaser.GameObjects.GameObject[] = [
-      this.panel(580, 430),
-      addText(this, 0, -150, reason, { size: 24, color: '#ff7ad9' }),
-      addText(this, 0, -70, formatNumber(total), { size: 72 }).setShadow(0, 0, '#55eeff', 16, false, true),
-      addText(this, 0, -15, 'POINTS', { size: 20, color: '#8a93b8' }),
-      addButton(this, 'RESTART', () => this.restart()).setPosition(-140, 120),
-      addButton(this, 'MENU', () => this.scene.start('menu')).setPosition(140, 120),
-      addText(this, 0, 180, 'R / A restart    Esc / B menu', { size: 14, color: '#5d6480' }),
+      this.panel(580, 500),
+      addText(this, 0, -195, reason, { size: 24, color: '#ff7ad9' }),
+      addText(this, 0, -115, formatNumber(total), { size: 72 }).setShadow(0, 0, '#55eeff', 16, false, true),
+      addText(this, 0, -60, 'POINTS', { size: 20, color: '#8a93b8' }),
+      addButton(this, 'RESTART', () => this.restart()).setPosition(-140, 75),
+      addButton(this, 'MENU', () => this.scene.start('menu')).setPosition(140, 75),
+      addText(this, 0, 210, 'R / A restart    Esc / B menu    Y submit', { size: 14, color: '#5d6480' }),
     ];
+    if (total > 0) {
+      this.submitButton = addButton(this, 'SUBMIT TO LEADERBOARD', () => void this.submitRun(total), 540);
+      children.push(this.submitButton.setPosition(0, 145));
+    }
     if (record) {
-      const banner = addText(this, 0, 45, 'NEW HIGH SCORE!', { font: 'title', size: 28, color: '#ffe066' });
+      const banner = addText(this, 0, 5, 'NEW HIGH SCORE!', { font: 'title', size: 28, color: '#ffe066' });
       this.tweens.add({ targets: banner, scale: 1.1, duration: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       children.push(banner);
       this.highScoreText.setText(`HIGH ${formatNumber(total)}`);
     } else {
-      children.push(addText(this, 0, 45, `High score  ${formatNumber(settings.highScore)}`, { size: 20, color: '#cfd8ff' }));
+      children.push(addText(this, 0, 5, `High score  ${formatNumber(settings.highScore)}`, { size: 20, color: '#cfd8ff' }));
     }
     this.showOverlay(children);
+  }
+
+  /** Opens the name entry for this run and shows the leaderboard rank on the button afterwards. */
+  private async submitRun(total: number): Promise<void> {
+    const button = this.submitButton;
+    if (!button || this.submitted || panelOpen()) return;
+    const [frame, label] = button.list as [Phaser.GameObjects.Rectangle, Phaser.GameObjects.Text];
+    const runId = await this.runRequest;
+    if (!button.active) return; // scene restarted while waiting
+    if (!runId) {
+      label.setText('LEADERBOARD OFFLINE');
+      frame.disableInteractive();
+      return;
+    }
+    const result = await openSubmitPanel(this, runId, total, {
+      kills: this.kills,
+      gates: this.gatesCleared,
+      gems: this.multiplier - 1,
+      durationMs: Math.round(this.elapsed * 1000),
+    });
+    if (!result || !button.active) return;
+    this.submitted = true;
+    label.setText(`SUBMITTED  ·  RANK #${result.rank}`).setColor('#9dff4a');
+    frame.disableInteractive().setFillStyle(0x000000, 0.5);
   }
 
   private setPaused(paused: boolean): void {
@@ -487,16 +531,24 @@ export class GameScene extends Phaser.Scene {
   }
 
   private bindPad(): void {
+    // While a leaderboard panel is open, B closes it and everything else is ignored.
+    const unlessPanel = (action: () => void) => () => {
+      if (!panelOpen()) action();
+    };
     onPadButtons(this, {
-      [PAD.MENU]: () => this.setPaused(!this.paused),
-      [PAD.A]: () => {
+      [PAD.MENU]: unlessPanel(() => this.setPaused(!this.paused)),
+      [PAD.A]: unlessPanel(() => {
         if (this.paused) this.setPaused(false);
         else if (this.state === 'over') this.restart();
-      },
+      }),
       [PAD.B]: () => {
-        if (this.paused || this.state === 'over') this.scene.start('menu');
+        if (panelOpen()) closePanel();
+        else if (this.paused || this.state === 'over') this.scene.start('menu');
       },
-      [PAD.VIEW]: () => toggleMute(),
+      [PAD.Y]: unlessPanel(() => {
+        if (this.state === 'over' && this.submitButton) void this.submitRun(this.total);
+      }),
+      [PAD.VIEW]: unlessPanel(() => toggleMute()),
     });
   }
 }

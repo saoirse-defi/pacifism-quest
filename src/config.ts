@@ -1,5 +1,8 @@
 // Tuning values. Distances are in world units (≈ CSS pixels on a desktop screen),
 // times are in seconds and speeds in units per second.
+//
+// The leaderboard server re-checks scores using copies of the difficulty levels, points and
+// wave schedule (server/api/lib.php). Change those there too, or real scores will be rejected.
 
 /** The playfield is scaled so its shortest side is at least this many world units. */
 export const DESIGN_SHORT_SIDE = 820;

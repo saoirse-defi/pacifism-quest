@@ -46,6 +46,13 @@ one of its buttons has been pressed. The game also pauses automatically when you
 - Score = points × multiplier × difficulty level (3–8), so harder settings score more.
 - High score, difficulty, background and mute are saved in localStorage.
 
+## Online leaderboard
+
+After a run you can submit your score with a name, and the menu's LEADERBOARD shows the top 20 for each
+difficulty. The backend is PHP + MySQL in `server/`. See [server/README.md](server/README.md) for
+setting it up in cPanel and for how submissions are checked. Without the backend, the game works as before
+and the leaderboard shows as offline.
+
 ## Project layout
 
 ```

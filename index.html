@@ -64,6 +64,132 @@
       #menu-extras a:hover {
         background: #55eeff22;
       }
+
+      /* Leaderboard panels (src/panels.ts) */
+      .pq-overlay {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+        background: #000a;
+        z-index: 10;
+      }
+      .pq-panel {
+        box-sizing: border-box;
+        width: min(440px, 100%);
+        max-height: 100%;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 24px;
+        background: #05060cee;
+        border: 2px solid #55eeffcc;
+        box-shadow: 0 0 24px #55eeff44;
+        color: #fff;
+        font-family: DotGothic16, monospace;
+        text-align: center;
+      }
+      .pq-title {
+        margin: 0;
+        font-family: Orbitron, sans-serif;
+        font-weight: 900;
+        font-size: 24px;
+        letter-spacing: 0.06em;
+        color: #bff8ff;
+        text-shadow: 0 0 12px #55eeff;
+      }
+      .pq-score {
+        margin: 0;
+        font-size: 40px;
+        text-shadow: 0 0 12px #55eeff;
+      }
+      .pq-input {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 12px;
+        font: 22px DotGothic16, monospace;
+        color: #fff;
+        background: #000;
+        border: 2px solid #55eeff88;
+        outline: none;
+        text-align: center;
+      }
+      .pq-input:focus {
+        border-color: #55eeff;
+        box-shadow: 0 0 12px #55eeff66;
+      }
+      .pq-hint,
+      .pq-message {
+        margin: 0;
+        font-size: 14px;
+        color: #8a93b8;
+        min-height: 1em;
+      }
+      .pq-message {
+        color: #ff7ad9;
+      }
+      .pq-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        width: 100%;
+      }
+      .pq-button {
+        flex: 1;
+        min-height: 48px;
+        padding: 0 16px;
+        font: 900 16px Orbitron, sans-serif;
+        letter-spacing: 0.06em;
+        color: #bff8ff;
+        background: #0008;
+        border: 2px solid #55eeffcc;
+        cursor: pointer;
+      }
+      .pq-button:hover,
+      .pq-button:focus-visible {
+        background: #55eeff33;
+        outline: none;
+      }
+      .pq-button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      .pq-small {
+        flex: 0 0 48px;
+        padding: 0;
+      }
+      .pq-difficulty {
+        flex: 1;
+        font: 900 18px Orbitron, sans-serif;
+      }
+      .pq-list {
+        width: 100%;
+        margin: 0;
+        padding: 0 0 0 2.4em;
+        font-size: 18px;
+        text-align: left;
+      }
+      .pq-list li {
+        padding: 4px 0;
+        border-bottom: 1px solid #55eeff22;
+      }
+      .pq-list li::marker {
+        color: #8a93b8;
+      }
+      .pq-name {
+        display: inline-block;
+        width: 60%;
+      }
+      .pq-points {
+        display: inline-block;
+        width: 40%;
+        text-align: right;
+        color: #9dff4a;
+      }
     </style>
   </head>
   <body>
