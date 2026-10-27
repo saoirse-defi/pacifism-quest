@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="Against All Odds — a neon arcade survival game. No weapons: fly through gates to destroy the horde." />
+    <title>Against All Odds</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Orbitron:wght@900&display=swap" rel="stylesheet" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        overscroll-behavior: none;
+      }
+      #game {
+        position: fixed;
+        inset: 0;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #game canvas {
+        display: block;
+      }
+      #menu-extras {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: max(12px, env(safe-area-inset-bottom));
+        display: none;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 12px;
+        pointer-events: none;
+      }
+      body.in-menu #menu-extras {
+        display: flex;
+      }
+      #menu-extras > * {
+        pointer-events: auto;
+      }
+      #menu-extras a {
+        font-family: Orbitron, sans-serif;
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        color: #7fe9ff;
+        text-decoration: none;
+        border: 1px solid #7fe9ff88;
+        padding: 10px 14px;
+        white-space: nowrap;
+        flex-shrink: 0;
+        background: #0008;
+      }
+      #menu-extras a:hover {
+        background: #55eeff22;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game"></div>
+    <div id="menu-extras">
+      <a href="https://youtu.be/HVIbuHl9hpM" target="_blank" rel="noopener">HOW TO PLAY</a>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
